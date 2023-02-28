@@ -70,11 +70,12 @@ chmod +x "$DUMB_DIR/update-binary"
 echo "#MAGISK" >"$DUMB_DIR/updater-script"
 chmod +x "$DUMB_DIR/updater-script"
 
-sed -i '' "s/^version=.*$/version=$MOD_NEW_VER/g" module.prop
-sed -i '' "s/^versionCode=.*$/versionCode=$MOD_NEW_VER/g" module.prop
-sed -i '' "s/^fpeOtaVersionCode=.*$/fpeOtaVersionCode=$FPE_OTA_NEW_VC/g" module.prop
-sed -i '' "s/^fdroidVersionCode=.*$/fdroidVersionCode=$FDROID_NEW_VC/g" module.prop
-cp module.prop customize.sh "$TMP_DIR"
+sed -e "s/^version=.*$/version=$MOD_NEW_VER/g" \
+  -e "s/^versionCode=.*$/versionCode=$MOD_NEW_VER/g" \
+  -e "s/^fpeOtaVersionCode=.*$/fpeOtaVersionCode=$FPE_OTA_NEW_VC/g" \
+  -e "s/^fdroidVersionCode=.*$/fdroidVersionCode=$FDROID_NEW_VC/g" module.prop >"$TMP_DIR/module.prop"
+cp "$TMP_DIR/module.prop" module.prop
+cp customize.sh "$TMP_DIR"
 
 error "==> Creating zip"
 FPE_MOD_ZIP="$FPE_PKG.mod_$MOD_NEW_VER.zip"
@@ -83,12 +84,11 @@ zip -r "$OUT_DIR/$FPE_MOD_ZIP" .
 cd "$PROG_DIR"
 error "$OUT_DIR/$FPE_MOD_ZIP"
 
-CHANGELOG=CHANGELOG.md
-error "==> Updating $CHANGELOG"
+error "==> Updating CHANGELOG"
 {
   echo "### $MOD_NEW_VER" && echo
   [ "$FPE_OTA_OLD_VC" -ne "$FPE_OTA_NEW_VC" ] && echo "- $FPE_OTA_PKG $FPE_OTA_OLD_VC -> $FPE_OTA_NEW_VC" && echo
   [ "$FDROID_OLD_VC" -ne "$FDROID_NEW_VC" ] && echo "- $FDROID_PKG $FDROID_OLD_VC -> $FDROID_NEW_VC" && echo
-} >"$TMP_DIR/$CHANGELOG"
-[ -f "$CHANGELOG" ] && cat CHANGELOG.md >>"$TMP_DIR/$CHANGELOG"
-mv "$TMP_DIR/$CHANGELOG" "$CHANGELOG"
+} >"$TMP_DIR/CHANGELOG.md"
+[ -f CHANGELOG.md ] && cat CHANGELOG.md >>"$TMP_DIR/CHANGELOG.md"
+mv "$TMP_DIR/CHANGELOG.md" CHANGELOG.md
