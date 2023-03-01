@@ -21,9 +21,11 @@ jobs:
           CHANGELOG=$(
             FLAG=false
             while IFS= read -r line; do
-              [ "$FLAG" = true ] && echo "$line" | grep -qs "^###" && break
+              if echo "$line" | grep -qs "^###"; then
+                [ "$FLAG" = true ] && break
+                FLAG=true
+              fi
               echo "$line"
-              echo "$line" | grep -qs "^###" && FLAG=true
             done <CHANGELOG.md
           )
           echo "CHANGELOG=$CHANGELOG" >>"$GITHUB_OUTPUT"
