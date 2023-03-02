@@ -15,7 +15,8 @@ jobs:
       - name: Create
         id: create
         run: |
-          ./create_mod.sh || exit 1
+          ./create_mod.sh -e
+          [ -z "$(git status -s)" ] && exit
           VERSION=$(sed -n 's/^versionCode=//p' module.prop)
           echo "VERSION=$VERSION" >>"$GITHUB_OUTPUT"
           {
@@ -32,12 +33,14 @@ jobs:
           } >>"$GITHUB_OUTPUT"
 
       - name: Update the module
+        if: ${{ steps.create.outputs.VERSION != '' }}
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update to ${{ steps.create.outputs.VERSION }}
 
       - name: Release
         id: release
+        if: ${{ steps.create.outputs.VERSION != '' }}
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.create.outputs.VERSION }}
@@ -45,11 +48,13 @@ jobs:
           files: build/*
 
       - name: Update update.json
+        if: ${{ steps.create.outputs.VERSION != '' }}
         run: |
           jq '.version = "${{ steps.create.outputs.VERSION }}" | .versionCode = ${{ steps.create.outputs.VERSION }} | .zipUrl = "${{ fromJSON(steps.release.outputs.assets)[0].browser_download_url }}"' update.json >update.json.tmp
           mv update.json.tmp update.json
 
       - name: Commit update.json
+        if: ${{ steps.create.outputs.VERSION != '' }}
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Update update.json to ${{ steps.create.outputs.VERSION }}
