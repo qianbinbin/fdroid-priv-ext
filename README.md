@@ -21,3 +21,9 @@ Simply run:
 ```sh
 $ ./create_mod.sh
 ```
+
+## Troubleshooting
+
+In some cases, network access of system apps may get disabled by default. Follow these steps to make it work:
+
+> Settings -> Apps -> F-Droid -> Mobile data & Wi-Fi -> Allow network access
