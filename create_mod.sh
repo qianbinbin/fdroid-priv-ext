@@ -11,7 +11,7 @@ Usage: $0 [OPTION]...
   -e                  early exit if no updates
   -h                  display this help and exit
 
-Home page: <https://github.com/qianbinbin/fdroid-priv-ext>
+Home page: <https://github.com/tankaras/vN340-934hdf-io49FD>
 END
 )
 
