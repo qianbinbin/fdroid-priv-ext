@@ -47,9 +47,9 @@ FPE_PKG="$FDROID_PKG.privileged"
 FPE_OTA_PKG="$FPE_PKG.ota"
 
 FPE_OTA_OLD_VC=$(sed -n 's/^fpeOtaVersionCode=//p' module.prop)
-FPE_OTA_NEW_VC=$(curl -fsSL "https://f-droid.org/api/v1/packages/$FPE_OTA_PKG" | jq '.suggestedVersionCode')
+FPE_OTA_NEW_VC=$(curl --compressed -fsSL "https://f-droid.org/api/v1/packages/$FPE_OTA_PKG" | jq '.suggestedVersionCode')
 FDROID_OLD_VC=$(sed -n 's/^fdroidVersionCode=//p' module.prop)
-FDROID_NEW_VC=$(curl -fsSL "https://f-droid.org/api/v1/packages/$FDROID_PKG" | jq '.suggestedVersionCode')
+FDROID_NEW_VC=$(curl --compressed -fsSL "https://f-droid.org/api/v1/packages/$FDROID_PKG" | jq '.suggestedVersionCode')
 MOD_VER=$(sed -n 's/^versionCode=//p' module.prop)
 
 UPGRADE=false
@@ -73,28 +73,55 @@ fi
 error "==> Fetching info"
 INDEX_URL="https://f-droid.org/repo/index-v1.json"
 INDEX_JSON="$TMP_DIR/index-v1.json"
-curl -L "$INDEX_URL" >"$INDEX_JSON"
+curl --compressed -L "$INDEX_URL" >"$INDEX_JSON"
 FPE_OTA_INFO=$(jq ".packages.\"$FPE_OTA_PKG\" | .[] | select(.versionCode==$FPE_OTA_NEW_VC)" "$INDEX_JSON")
 FPE_OTA_ZIP=$(echo "$FPE_OTA_INFO" | jq -r '.apkName')
+if [ "$(echo "$FPE_OTA_INFO" | jq -r '.hashType')" = sha256 ]; then
+  FPE_OTA_SHA256=$(echo "$FPE_OTA_INFO" | jq -r '.hash')
+fi
 FPE_OTA_URL="https://f-droid.org/repo/$FPE_OTA_ZIP"
 FDROID_INFO=$(jq ".packages.\"$FDROID_PKG\" | .[] | select(.versionCode==$FDROID_NEW_VC)" "$INDEX_JSON")
+if [ "$(echo "$FDROID_INFO" | jq -r '.hashType')" = sha256 ]; then
+  FDROID_SHA256=$(echo "$FDROID_INFO" | jq -r '.hash')
+fi
 FDROID_URL="https://f-droid.org/repo/$(echo "$FDROID_INFO" | jq -r '.apkName')"
 rm -f "$INDEX_JSON"
 
+verify_sha256() {
+  actual=$(sha256sum "$1" | awk '{ print $1 }')
+  if [ "$actual" != "$2" ]; then
+    error "$actual != $2"
+    return 1
+  fi
+}
+
 error "==> Downloading $FPE_OTA_URL"
 curl -L "$FPE_OTA_URL" >"$TMP_DIR/$FPE_OTA_ZIP"
+if [ -n "$FPE_OTA_SHA256" ]; then
+  error "==> Verifying checksum"
+  verify_sha256 "$TMP_DIR/$FPE_OTA_ZIP" "$FPE_OTA_SHA256"
+else
+  error "==> Skipping checksum verification"
+fi
 error "==> Extracting files from $FPE_OTA_ZIP"
 mkdir -p "$TMP_DIR/system/app/$FDROID_NAME" "$TMP_DIR/system/priv-app/$FPE_NAME" "$TMP_DIR/system/etc/permissions"
 unzip "$TMP_DIR/$FPE_OTA_ZIP" "$FPE_NAME.apk" -d "$TMP_DIR/system/priv-app/$FPE_NAME"
 unzip "$TMP_DIR/$FPE_OTA_ZIP" permissions_org.fdroid.fdroid.privileged.xml -d "$TMP_DIR/system/etc/permissions"
+
 error "==> Downloading $FDROID_URL"
 curl -L "$FDROID_URL" >"$TMP_DIR/system/app/$FDROID_NAME/$FDROID_NAME.apk"
+if [ -n "$FDROID_SHA256" ]; then
+  error "==> Verifying checksum"
+  verify_sha256 "$TMP_DIR/system/app/$FDROID_NAME/$FDROID_NAME.apk" "$FDROID_SHA256"
+else
+  error "==> Skipping checksum verification"
+fi
 rm -f "$TMP_DIR/$FPE_OTA_ZIP"
 
 error "==> Collecting files"
 DUMB_DIR="$TMP_DIR/META-INF/com/google/android"
 mkdir -p "$DUMB_DIR"
-curl -L https://raw.githubusercontent.com/topjohnwu/Magisk/master/scripts/module_installer.sh >"$DUMB_DIR/update-binary"
+curl --compressed -L https://raw.githubusercontent.com/topjohnwu/Magisk/master/scripts/module_installer.sh >"$DUMB_DIR/update-binary"
 chmod +x "$DUMB_DIR/update-binary"
 echo "#MAGISK" >"$DUMB_DIR/updater-script"
 chmod +x "$DUMB_DIR/updater-script"
