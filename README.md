@@ -11,7 +11,7 @@ The module is kept up to date via GitHub Actions.
 
 ## Installation
 
-Download the [module zip file](https://github.com/tankaras/vN340-934hdf-io49FD/releases) or [build your own](#Build),
+Download the [module zip file](https://github.com/rhee876527/vN340-934hdf-io49FD/releases) or [build your own](#Build),
 install it from Magisk, then reboot.
 
 ## Build
