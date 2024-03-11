@@ -9,6 +9,7 @@ USAGE=$(
 Usage: $0 [OPTION]...
 
   -e                  early exit if no updates
+  -n                  additionally build the netinst version
   -h                  display this help and exit
 
 Home page: <https://github.com/qianbinbin/fdroid-priv-ext>
@@ -21,9 +22,11 @@ _exit() {
 }
 
 EARLY_EXIT=false
-while getopts "eh" c; do
+NETINST=false
+while getopts "enh" c; do
   case $c in
   e) EARLY_EXIT=true ;;
+  n) NETINST=true ;;
   h) error "$USAGE" && exit ;;
   *) _exit ;;
   esac
@@ -141,8 +144,16 @@ error "==> Creating zip"
 FPE_MOD_ZIP="$FPE_PKG.mod_$MOD_VER.zip"
 cd "$TMP_DIR"
 zip -r "$OUT_DIR/$FPE_MOD_ZIP" .
-cd "$PROG_DIR"
 error "$OUT_DIR/$FPE_MOD_ZIP"
+if [ "$NETINST" = true ]; then
+  FPE_MOD_NETINST_ZIP="$FPE_PKG.mod.netinst_$MOD_VER-beta.zip"
+  rm -rf system customize.sh
+  cp "$PROG_DIR/customize-netinst.sh" customize.sh
+  sed 's/^\(updateJson=.*\)\.json$/\1-netinst.json/g' "$PROG_DIR/module.prop" >module.prop
+  zip -r "$OUT_DIR/$FPE_MOD_NETINST_ZIP" .
+  error "$OUT_DIR/$FPE_MOD_NETINST_ZIP"
+fi
+cd "$PROG_DIR"
 
 if [ "$UPGRADE" = true ]; then
   error "==> Updating CHANGELOG"
