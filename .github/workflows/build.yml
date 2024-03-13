@@ -34,14 +34,14 @@ jobs:
 
       - name: Update the module
         if: ${{ steps.create.outputs.VERSION != '' }}
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Bump version to ${{ steps.create.outputs.VERSION }}
 
       - name: Release
         id: release
         if: ${{ steps.create.outputs.VERSION != '' }}
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.create.outputs.VERSION }}
           body: ${{ steps.create.outputs.CHANGELOG }}
@@ -55,6 +55,6 @@ jobs:
 
       - name: Commit update.json
         if: ${{ steps.create.outputs.VERSION != '' }}
-        uses: stefanzweifel/git-auto-commit-action@v4
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: Bump update.json to ${{ steps.create.outputs.VERSION }}
