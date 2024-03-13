@@ -15,7 +15,7 @@ jobs:
       - name: Create
         id: create
         run: |
-          ./create_mod.sh -e
+          ./create_mod.sh -e -n
           [ -z "$(git status -s)" ] && exit
           VERSION=$(sed -n 's/^versionCode=//p' module.prop)
           echo "VERSION=$VERSION" >>"$GITHUB_OUTPUT"
@@ -49,9 +49,23 @@ jobs:
 
       - name: Update update.json
         if: ${{ steps.create.outputs.VERSION != '' }}
+        env:
+          VERSION: ${{ steps.create.outputs.VERSION }}
+          ASSETS: ${{ steps.release.outputs.assets }}
         run: |
-          jq '.version = "${{ steps.create.outputs.VERSION }}" | .versionCode = ${{ steps.create.outputs.VERSION }} | .zipUrl = "${{ fromJSON(steps.release.outputs.assets)[0].browser_download_url }}"' update.json >update.json.tmp
-          mv update.json.tmp update.json
+          echo "$ASSETS" | jq -c .[] | while IFS= read -r asset; do
+            name=$(echo "$asset" | jq -r '.name')
+            dl_url=$(echo "$asset" | jq -r '.browser_download_url')
+            case $name in
+            org.fdroid.fdroid.privileged.mod_*.zip)
+              jq ".version = \"$VERSION\" | .versionCode = $VERSION | .zipUrl = \"$dl_url\"" update.json >update.json.tmp
+              mv update.json.tmp update.json
+              ;;
+            org.fdroid.fdroid.privileged.mod.netinst_*.zip)
+              jq ".version = \"$VERSION\" | .versionCode = $VERSION | .zipUrl = \"$dl_url\"" update.json >update-netinst.json
+              ;;
+            esac
+          done
 
       - name: Commit update.json
         if: ${{ steps.create.outputs.VERSION != '' }}
