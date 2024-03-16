@@ -17,7 +17,7 @@ Download the [zip file](https://github.com/qianbinbin/fdroid-priv-ext/releases) 
 then install it from Magisk and reboot. The F-Droid app with the privileged extension will appear on your phone.
 
 Alternatively, you can install the module via
-[Androidacy Module Manager](https://www.androidacy.com/downloads/?view=FoxMMM) from the official Androidacy repository.
+[MRepo](https://github.com/MRepoApp/MRepo) from [IzzyOnDroid Magisk Repository](https://apt.izzysoft.de/magisk).
 
 ## Build
 
