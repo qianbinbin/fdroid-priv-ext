@@ -1,9 +1,9 @@
 id=fdroid-priv-ext
 name=F-Droid Privileged Extension
-version=20240301
-versionCode=20240301
+version=20240611
+versionCode=20240611
 author=qianbinbin
 description=With the privileged extension, F-Droid can make use of system permissions to install, update and remove applications on its own.
 updateJson=https://raw.githubusercontent.com/qianbinbin/fdroid-priv-ext/master/update.json
 fpeOtaVersionCode=2130
-fdroidVersionCode=1019051
+fdroidVersionCode=1020050
