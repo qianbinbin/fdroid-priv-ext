@@ -16,23 +16,27 @@ You don't have to install F-Droid first.
 Download the [zip file](https://github.com/qianbinbin/fdroid-priv-ext/releases) or [build your own module](#Build),
 then install it from Magisk and reboot. The F-Droid app with the privileged extension will appear on your phone.
 
-The netinst version, specifically `org.fdroid.fdroid.privileged.mod.netinst_*.zip`, allows you to install the required APKs via the Internet.
+Alternatively, you can install the module via
+[MMRL](https://github.com/DerGoogler/MMRL) from [IzzyOnDroid Magisk Repository](https://apt.izzysoft.de/magisk).
+
+### Network Installation
+
+The [netinst version](https://github.com/qianbinbin/fdroid-priv-ext/releases), specifically `org.fdroid.fdroid.privileged.mod.netinst_*.zip`, allows you to install the required files via the Internet.
 Create the `/sdcard/.fpe` file to enable mirror:
 
 ```
 mirror=https://mirrors.tuna.tsinghua.edu.cn/fdroid/repo
+
 # Legal examples:
 # https://mirrors.tuna.tsinghua.edu.cn/fdroid/repo
 # https://mirrors.tuna.tsinghua.edu.cn/fdroid/repo/
 # https://mirrors.tuna.tsinghua.edu.cn/fdroid/repo/?fingerprint=43238D512C1E5EB2D6569F4A3AFBF5523418B82E0A3ED1552770ABB9A9C9CCAB
-# To disable the mirror:
+
+# Uncomment the following code to disable the mirror:
 # mirror=
 ```
 
 Note that after successful installation, the `/sdcard/.fpe` file will be deleted, but the configuration will be remembered unless the module is removed.
-
-Alternatively, you can install the module via
-[MRepo](https://github.com/MRepoApp/MRepo) from [IzzyOnDroid Magisk Repository](https://apt.izzysoft.de/magisk).
 
 ## Build
 
