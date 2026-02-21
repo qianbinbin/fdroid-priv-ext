@@ -38,8 +38,7 @@ The [netinst version](https://github.com/qianbinbin/fdroid-priv-ext/releases),
 specifically `org.fdroid.fdroid.privileged.mod.netinst_*.zip`, allows you to
 install the required files via the Internet.
 
-Optionally, create the `/sdcard/.fpe` file to downloading from a mirror site,
-e.g.:
+Optionally, create the `/sdcard/.fpe` file to download from a mirror site, e.g.
 
 ```
 mirror=https://mirrors.tuna.tsinghua.edu.cn/fdroid/repo
@@ -62,7 +61,7 @@ mirror=https://mirrors.tuna.tsinghua.edu.cn/fdroid/repo
 
 ## Build
 
-Simply run:
+Simply run
 
 ```sh
 ./create_mod.sh
