@@ -34,7 +34,7 @@ jobs:
 
       - name: Update the module
         if: ${{ steps.create.outputs.VERSION != '' }}
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: Bump version to ${{ steps.create.outputs.VERSION }}
 
@@ -69,6 +69,6 @@ jobs:
 
       - name: Commit update.json
         if: ${{ steps.create.outputs.VERSION != '' }}
-        uses: stefanzweifel/git-auto-commit-action@v5
+        uses: stefanzweifel/git-auto-commit-action@v7
         with:
           commit_message: Bump update.json to ${{ steps.create.outputs.VERSION }}
