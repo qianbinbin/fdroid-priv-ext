@@ -41,7 +41,7 @@ jobs:
       - name: Release
         id: release
         if: ${{ steps.create.outputs.VERSION != '' }}
-        uses: softprops/action-gh-release@v2.4.2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.create.outputs.VERSION }}
           body: ${{ steps.create.outputs.CHANGELOG }}
