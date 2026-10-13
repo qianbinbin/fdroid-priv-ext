@@ -38,7 +38,7 @@ shift $((OPTIND - 1))
 PROG_DIR=$(dirname "$(realpath "$0")")
 cd "$PROG_DIR"
 OUT_DIR="$PROG_DIR/build"
-[ ! -d "$OUT_DIR" ] && mkdir -p "$OUT_DIR"
+[ -d "$OUT_DIR" ] || mkdir -p "$OUT_DIR"
 
 TMP_DIR=$(mktemp -d -t fpe.tmp.XXXXXXXX)
 trap 'rm -rf "$TMP_DIR"' EXIT
@@ -47,20 +47,23 @@ FDROID_NAME=F-Droid
 FPE_NAME=F-DroidPrivilegedExtension
 FDROID_PKG=org.fdroid.fdroid
 FPE_PKG="$FDROID_PKG.privileged"
-FPE_OTA_PKG="$FPE_PKG.ota"
 
-FPE_OTA_OLD_VC=$(sed -n 's/^fpeOtaVersionCode=//p' module.prop)
-FPE_OTA_NEW_VC=$(curl --compressed -fsSL "https://f-droid.org/api/v1/packages/$FPE_OTA_PKG" | jq '.suggestedVersionCode')
+FPE_OLD_VC=$(sed -n 's/^fpeVersionCode=//p' module.prop)
+[ -n "$FPE_OLD_VC" ] || FPE_OLD_VC=$(sed -n 's/^fpeOtaVersionCode=//p' module.prop) # migrate from ota to apk
+# suggestedVersionCode of FPE_PKG is too old, so just use the latest
+FPE_NEW_VC=$(curl --compressed -fsSL "https://f-droid.org/api/v1/packages/$FPE_PKG" | jq '.packages.[0].versionCode')
+[ -n "$FPE_NEW_VC" ] || { error "Unable to retrieve versionCode of $FPE_PKG" && exit 1; }
 FDROID_OLD_VC=$(sed -n 's/^fdroidVersionCode=//p' module.prop)
 FDROID_NEW_VC=$(curl --compressed -fsSL "https://f-droid.org/api/v1/packages/$FDROID_PKG" | jq '.suggestedVersionCode')
+[ -n "$FDROID_NEW_VC" ] || { error "Unable to retrieve versionCode of $FDROID_PKG" && exit 1; }
 MOD_VER=$(sed -n 's/^versionCode=//p' module.prop)
 
 UPGRADE=false
-if [ "$FPE_OTA_OLD_VC" -eq "$FPE_OTA_NEW_VC" ]; then
-  error "$FPE_OTA_PKG is already the newest version ($FPE_OTA_OLD_VC)."
+if [ "$FPE_OLD_VC" -eq "$FPE_NEW_VC" ]; then
+  error "$FPE_PKG is already the newest version ($FPE_OLD_VC)."
 else
   error "==> Upgrading:"
-  error "$FPE_OTA_PKG $FPE_OTA_OLD_VC -> $FPE_OTA_NEW_VC"
+  error "$FPE_PKG $FPE_OLD_VC -> $FPE_NEW_VC"
   UPGRADE=true
 fi
 if [ "$FDROID_OLD_VC" -eq "$FDROID_NEW_VC" ]; then
@@ -70,19 +73,24 @@ else
   error "$FDROID_PKG $FDROID_OLD_VC -> $FDROID_NEW_VC"
   UPGRADE=true
 fi
-[ "$EARLY_EXIT" = true ] && [ "$UPGRADE" != true ] && exit
-[ "$UPGRADE" = true ] && MOD_VER=$(date +%Y%m%d)
+if [ "$EARLY_EXIT" = true ] && [ "$UPGRADE" != true ]; then
+  exit 0
+fi
+if [ "$UPGRADE" = true ]; then
+  MOD_VER=$(date +%Y%m%d)
+fi
 
 error "==> Fetching info"
 INDEX_URL="https://f-droid.org/repo/index-v1.json"
 INDEX_JSON="$TMP_DIR/index-v1.json"
-curl --compressed -L "$INDEX_URL" >"$INDEX_JSON"
-FPE_OTA_INFO=$(jq ".packages.\"$FPE_OTA_PKG\" | .[] | select(.versionCode==$FPE_OTA_NEW_VC)" "$INDEX_JSON")
-FPE_OTA_ZIP=$(echo "$FPE_OTA_INFO" | jq -r '.apkName')
-if [ "$(echo "$FPE_OTA_INFO" | jq -r '.hashType')" = sha256 ]; then
-  FPE_OTA_SHA256=$(echo "$FPE_OTA_INFO" | jq -r '.hash')
+curl --compressed -fL "$INDEX_URL" >"$INDEX_JSON"
+FPE_INFO=$(jq ".packages.\"$FPE_PKG\" | .[] | select(.versionCode==$FPE_NEW_VC)" "$INDEX_JSON")
+if [ "$(echo "$FPE_INFO" | jq -r '.hashType')" = sha256 ]; then
+  FPE_SHA256=$(echo "$FPE_INFO" | jq -r '.hash')
 fi
-FPE_OTA_URL="https://f-droid.org/repo/$FPE_OTA_ZIP"
+FPE_URL="https://f-droid.org/repo/$(echo "$FPE_INFO" | jq -r '.apkName')"
+FPE_SRC_TARBALL="$(echo "$FPE_INFO" | jq -r '.srcname')"
+FPE_SRC_URL="https://f-droid.org/repo/$FPE_SRC_TARBALL"
 FDROID_INFO=$(jq ".packages.\"$FDROID_PKG\" | .[] | select(.versionCode==$FDROID_NEW_VC)" "$INDEX_JSON")
 if [ "$(echo "$FDROID_INFO" | jq -r '.hashType')" = sha256 ]; then
   FDROID_SHA256=$(echo "$FDROID_INFO" | jq -r '.hash')
@@ -98,33 +106,35 @@ verify_sha256() {
   fi
 }
 
-error "==> Downloading $FPE_OTA_URL"
-curl -L "$FPE_OTA_URL" >"$TMP_DIR/$FPE_OTA_ZIP"
-if [ -n "$FPE_OTA_SHA256" ]; then
+mkdir -p "$TMP_DIR/system/app/$FDROID_NAME" "$TMP_DIR/system/priv-app/$FPE_NAME" "$TMP_DIR/system/etc/permissions"
+error "==> Downloading $FPE_URL"
+curl -fL -o "$TMP_DIR/system/priv-app/$FPE_NAME/$FPE_NAME.apk" "$FPE_URL"
+if [ -n "$FPE_SHA256" ]; then
   error "==> Verifying checksum"
-  verify_sha256 "$TMP_DIR/$FPE_OTA_ZIP" "$FPE_OTA_SHA256"
+  verify_sha256 "$TMP_DIR/system/priv-app/$FPE_NAME/$FPE_NAME.apk" "$FPE_SHA256"
 else
   error "==> Skipping checksum verification"
 fi
-error "==> Extracting files from $FPE_OTA_ZIP"
-mkdir -p "$TMP_DIR/system/app/$FDROID_NAME" "$TMP_DIR/system/priv-app/$FPE_NAME" "$TMP_DIR/system/etc/permissions"
-unzip "$TMP_DIR/$FPE_OTA_ZIP" "$FPE_NAME.apk" -d "$TMP_DIR/system/priv-app/$FPE_NAME"
-unzip "$TMP_DIR/$FPE_OTA_ZIP" permissions_org.fdroid.fdroid.privileged.xml -d "$TMP_DIR/system/etc/permissions"
+error "==> Downloading $FPE_SRC_URL"
+curl --compressed -fL -o "$TMP_DIR/$FPE_SRC_TARBALL" "$FPE_SRC_URL"
+error "==> Extracting permission allowlist from $FPE_SRC_TARBALL"
+tar -xf "$TMP_DIR/$FPE_SRC_TARBALL" -C "$TMP_DIR/system/etc/permissions" --strip-components 4 \
+  "$FPE_SRC_TARBALL/app/src/main/permissions_org.fdroid.fdroid.privileged.xml"
+rm -f "$TMP_DIR/$FPE_SRC_TARBALL"
 
 error "==> Downloading $FDROID_URL"
-curl -L "$FDROID_URL" >"$TMP_DIR/system/app/$FDROID_NAME/$FDROID_NAME.apk"
+curl -fL -o "$TMP_DIR/system/app/$FDROID_NAME/$FDROID_NAME.apk" "$FDROID_URL"
 if [ -n "$FDROID_SHA256" ]; then
   error "==> Verifying checksum"
   verify_sha256 "$TMP_DIR/system/app/$FDROID_NAME/$FDROID_NAME.apk" "$FDROID_SHA256"
 else
   error "==> Skipping checksum verification"
 fi
-rm -f "$TMP_DIR/$FPE_OTA_ZIP"
 
 error "==> Collecting files"
 DUMB_DIR="$TMP_DIR/META-INF/com/google/android"
 mkdir -p "$DUMB_DIR"
-curl --compressed -L https://raw.githubusercontent.com/topjohnwu/Magisk/master/scripts/module_installer.sh >"$DUMB_DIR/update-binary"
+curl --compressed -fL -o "$DUMB_DIR/update-binary" https://raw.githubusercontent.com/topjohnwu/Magisk/master/scripts/module_installer.sh
 chmod +x "$DUMB_DIR/update-binary"
 echo "#MAGISK" >"$DUMB_DIR/updater-script"
 chmod +x "$DUMB_DIR/updater-script"
@@ -133,7 +143,8 @@ cp customize.sh "$TMP_DIR"
 if [ "$UPGRADE" = true ]; then
   sed -e "s/^version=.*$/version=$MOD_VER/g" \
     -e "s/^versionCode=.*$/versionCode=$MOD_VER/g" \
-    -e "s/^fpeOtaVersionCode=.*$/fpeOtaVersionCode=$FPE_OTA_NEW_VC/g" \
+    -e "s/^fpeOtaVersionCode=.*$/fpeVersionCode=$FPE_NEW_VC/g" \
+    -e "s/^fpeVersionCode=.*$/fpeVersionCode=$FPE_NEW_VC/g" \
     -e "s/^fdroidVersionCode=.*$/fdroidVersionCode=$FDROID_NEW_VC/g" module.prop >"$TMP_DIR/module.prop"
   cp "$TMP_DIR/module.prop" module.prop
 else
@@ -159,7 +170,7 @@ if [ "$UPGRADE" = true ]; then
   error "==> Updating CHANGELOG"
   {
     echo "### $MOD_VER" && echo
-    [ "$FPE_OTA_OLD_VC" -ne "$FPE_OTA_NEW_VC" ] && echo "- $FPE_OTA_PKG $FPE_OTA_OLD_VC -> $FPE_OTA_NEW_VC" && echo
+    [ "$FPE_OLD_VC" -ne "$FPE_NEW_VC" ] && echo "- $FPE_PKG $FPE_OLD_VC -> $FPE_NEW_VC" && echo
     [ "$FDROID_OLD_VC" -ne "$FDROID_NEW_VC" ] && echo "- $FDROID_PKG $FDROID_OLD_VC -> $FDROID_NEW_VC" && echo
   } >"$TMP_DIR/CHANGELOG.md"
   [ -f CHANGELOG.md ] && cat CHANGELOG.md >>"$TMP_DIR/CHANGELOG.md"

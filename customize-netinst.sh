@@ -8,7 +8,6 @@ FDROID_NAME=F-Droid
 FPE_NAME=F-DroidPrivilegedExtension
 FDROID_PKG=org.fdroid.fdroid
 FPE_PKG="$FDROID_PKG.privileged"
-FPE_OTA_PKG="$FPE_PKG.ota"
 
 # The config file will be removed by default
 # mirror=https://f-droid.org/repo
@@ -24,7 +23,8 @@ read_prop() {
   cat "$@" 2>/dev/null | sed -n "s/^$key=//p" 2>/dev/null | head -n 1
 }
 
-FPE_OTA_VC=$(read_prop fpeOtaVersionCode "$MODPATH/module.prop")
+FPE_VC=$(read_prop fpeOtaVersionCode "$MODPATH/module.prop")
+[ -n "$FPE_VC" ] || FPE_VC=$(read_prop fpeVersionCode "$MODPATH/module.prop") # migrate from ota to apk
 FDROID_VC=$(read_prop fdroidVersionCode "$MODPATH/module.prop")
 
 WELCOME=$(
@@ -69,8 +69,10 @@ mirrorify() {
   fi
 }
 
-FPE_OTA_ZIP="${FPE_OTA_PKG}_$FPE_OTA_VC.zip"
-FPE_OTA_URL=$(echo "https://f-droid.org/repo/$FPE_OTA_ZIP" | mirrorify)
+FPE_APK="${FPE_PKG}_$FPE_VC.apk"
+FPE_URL=$(echo "https://f-droid.org/repo/$FPE_APK" | mirrorify)
+FPE_SRC_TARBALL="${FPE_PKG}_${FPE_VC}_src.tar.gz"
+FPE_SRC_URL=$(echo "https://f-droid.org/repo/$FPE_SRC_TARBALL" | mirrorify)
 FDROID_APK="${FDROID_PKG}_$FDROID_VC.apk"
 FDROID_URL=$(echo "https://f-droid.org/repo/$FDROID_APK" | mirrorify)
 
@@ -79,7 +81,7 @@ FDROID_URL=$(echo "https://f-droid.org/repo/$FDROID_APK" | mirrorify)
 INDEX_JSON="index-v1.json"
 INDEX_URL=$(echo "https://f-droid.org/repo/$INDEX_JSON" | mirrorify)
 ui_print "==> Downloading $INDEX_URL"
-curl --compressed -L -o "$TMPDIR/$INDEX_JSON" "$INDEX_URL" || abort "Unable to download"
+curl --compressed -fL -o "$TMPDIR/$INDEX_JSON" "$INDEX_URL" || abort "Unable to download"
 find "$TMPDIR/$INDEX_JSON"
 
 # May be unstable but we have no `jq`
@@ -96,36 +98,39 @@ verify_sha256() {
   fi
 }
 
-ui_print "==> Extracting sha256 for $FPE_OTA_ZIP"
-FPE_OTA_SHA256=$(get_sha256 "$FPE_OTA_ZIP")
-if [ -n "$FPE_OTA_SHA256" ]; then ui_print "$FPE_OTA_SHA256"; else ui_print "Unable to extract"; fi
+ui_print "==> Extracting sha256 for $FPE_APK"
+FPE_SHA256=$(get_sha256 "$FPE_APK")
+if [ -n "$FPE_SHA256" ]; then ui_print "$FPE_SHA256"; else ui_print "Unable to extract"; fi
 ui_print "==> Extracting sha256 for $FDROID_APK"
 FDROID_SHA256=$(get_sha256 "$FDROID_APK")
 if [ -n "$FDROID_SHA256" ]; then ui_print "$FDROID_SHA256"; else ui_print "Unable to extract"; fi
 
-ui_print "==> Downloading $FPE_OTA_URL"
-curl -L -o "$TMPDIR/$FPE_OTA_ZIP" "$FPE_OTA_URL" || abort "Unable to download"
-find "$TMPDIR/$FPE_OTA_ZIP"
-if [ -n "$FPE_OTA_SHA256" ]; then
+ui_print "==> Downloading $FPE_URL"
+mkdir -p "$MODPATH/system/priv-app/$FPE_NAME"
+curl -fL -o "$MODPATH/system/priv-app/$FPE_NAME/$FPE_NAME.apk" "$FPE_URL" || abort "Unable to download"
+find "$MODPATH/system/priv-app/$FPE_NAME/$FPE_NAME.apk"
+if [ -n "$FPE_SHA256" ]; then
   ui_print "Verifying checksum"
-  verify_sha256 "$TMPDIR/$FPE_OTA_ZIP" "$FPE_OTA_SHA256" || abort "Unable to download"
+  verify_sha256 "$MODPATH/system/priv-app/$FPE_NAME/$FPE_NAME.apk" "$FPE_SHA256" || abort "Unable to download"
 else
   ui_print "Skipping checksum verification"
 fi
-ui_print "Extracting files from $FPE_OTA_ZIP"
-mkdir -p "$MODPATH/system/priv-app/$FPE_NAME"
-unzip -o "$TMPDIR/$FPE_OTA_ZIP" "$FPE_NAME.apk" -d "$MODPATH/system/priv-app/$FPE_NAME" || abort "Unable to extract"
 # Permission allowlists are required for Android >= 8.0, see
 # https://source.android.com/docs/core/permissions/perms-allowlist
 if [ "$API" -ge 26 ]; then
-  ui_print "Extracting permission allowlist for API level $API"
+  ui_print "==> Downloading $FPE_SRC_URL for API level $API"
   mkdir -p "$MODPATH/system/etc/permissions"
-  unzip -o "$TMPDIR/$FPE_OTA_ZIP" permissions_org.fdroid.fdroid.privileged.xml -d "$MODPATH/system/etc/permissions" || abort "Unable to extract"
+  curl --compressed -fL -o "$TMPDIR/$FPE_SRC_TARBALL" "$FPE_SRC_URL" || abort "Unable to download"
+  find "$TMPDIR/$FPE_SRC_TARBALL"
+  ui_print "==> Extracting permission allowlist"
+  tar -xf "$TMPDIR/$FPE_SRC_TARBALL" -C "$MODPATH/system/etc/permissions" --strip-components 4 \
+    "$FPE_SRC_TARBALL/app/src/main/permissions_org.fdroid.fdroid.privileged.xml" || abort "Unable to extract"
+  find "$MODPATH/system/etc/permissions/permissions_org.fdroid.fdroid.privileged.xml"
 fi
 
 ui_print "==> Downloading $FDROID_URL"
 mkdir -p "$MODPATH/system/app/$FDROID_NAME"
-curl -L -o "$MODPATH/system/app/$FDROID_NAME/$FDROID_NAME.apk" "$FDROID_URL" || abort "Unable to download"
+curl -fL -o "$MODPATH/system/app/$FDROID_NAME/$FDROID_NAME.apk" "$FDROID_URL" || abort "Unable to download"
 find "$MODPATH/system/app/$FDROID_NAME/$FDROID_NAME.apk"
 if [ -n "$FDROID_SHA256" ]; then
   ui_print "Verifying checksum"
