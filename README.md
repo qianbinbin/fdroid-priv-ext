@@ -5,7 +5,7 @@
 [![GitHub Release](https://img.shields.io/github/v/release/qianbinbin/fdroid-priv-ext)](https://github.com/qianbinbin/fdroid-priv-ext/releases)
 [![Dynamic JSON Badge](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fapt.izzysoft.de%2Fmagisk%2Fmodules%2Ffdroid-priv-ext%2Fupdate.json&query=%24.versions%5B-1%3A%5D.versionCode&label=izzyondroid)](https://apt.izzysoft.de/magisk)
 
-[![Dynamic Regex Badge](<https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fgithub.com%2Fqianbinbin%2Ffdroid-priv-ext%2Fraw%2Frefs%2Fheads%2Fmaster%2Fmodule.prop&search=fpeOtaVersionCode%3D(.*)&replace=%241&label=org.fdroid.fdroid.privileged.ota>)](https://f-droid.org/en/packages/org.fdroid.fdroid.privileged.ota/)
+[![Dynamic Regex Badge](<https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fgithub.com%2Fqianbinbin%2Ffdroid-priv-ext%2Fraw%2Frefs%2Fheads%2Fmaster%2Fmodule.prop&search=fpeVersionCode%3D(.*)&replace=%241&label=org.fdroid.fdroid.privileged>)](https://f-droid.org/en/packages/org.fdroid.fdroid.privileged/)
 [![Dynamic Regex Badge](<https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fgithub.com%2Fqianbinbin%2Ffdroid-priv-ext%2Fraw%2Frefs%2Fheads%2Fmaster%2Fmodule.prop&search=fdroidVersionCode%3D(.*)&replace=%241&label=org.fdroid.fdroid>)](https://f-droid.org/en/packages/org.fdroid.fdroid/)
 
 With the privileged extension,
@@ -13,7 +13,7 @@ With the privileged extension,
 system permissions to install, update and remove applications on its own.
 
 Instead of installing the
-[OTA update ZIP file](https://f-droid.org/en/packages/org.fdroid.fdroid.privileged.ota/)
+[OTA update ZIP file (deprecated)](https://f-droid.org/en/packages/org.fdroid.fdroid.privileged.ota/)
 from recovery, now you can install the module from
 [Magisk](https://github.com/topjohnwu/Magisk) systemlessly, which means it won't
 permanently overwrite your system files.
