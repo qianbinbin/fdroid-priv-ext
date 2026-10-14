@@ -1,3 +1,7 @@
+### 20261014
+
+- org.fdroid.fdroid.privileged 2130 -> 2140
+
 ### 20260221
 
 - org.fdroid.fdroid 1023051 -> 1023052
