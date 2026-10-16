@@ -56,6 +56,14 @@ FPE_NEW_VC=$(curl --compressed -fsSL "https://f-droid.org/api/v1/packages/$FPE_P
 FDROID_OLD_VC=$(sed -n 's/^fdroidVersionCode=//p' module.prop)
 FDROID_NEW_VC=$(curl --compressed -fsSL "https://f-droid.org/api/v1/packages/$FDROID_PKG" | jq '.suggestedVersionCode')
 [ -n "$FDROID_NEW_VC" ] || { error "Unable to retrieve versionCode of $FDROID_PKG" && exit 1; }
+if [ "$FDROID_NEW_VC" -ge 2000000 ]; then
+  error "==> Exiting for F-Droid $FDROID_NEW_VC"
+  error 'F-Droid Privileged Extension (FPE) is not currently supported by 2.0, see'
+  error 'https://f-droid.org/en/2026/09/24/f-droid-2.0-a-new-chapter-for-android-freedom.html'
+  error 'rework privileged extension and alternate installer support:'
+  error 'https://gitlab.com/fdroid/fdroidclient/-/work_items/3376'
+  exit 1
+fi
 MOD_VER=$(sed -n 's/^versionCode=//p' module.prop)
 
 UPGRADE=false
