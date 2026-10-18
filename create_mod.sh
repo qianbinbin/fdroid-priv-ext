@@ -124,7 +124,7 @@ else
   error "==> Skipping checksum verification"
 fi
 error "==> Downloading $FPE_SRC_URL"
-curl --compressed -fL -o "$TMP_DIR/$FPE_SRC_TARBALL" "$FPE_SRC_URL"
+curl -fL -o "$TMP_DIR/$FPE_SRC_TARBALL" "$FPE_SRC_URL"
 error "==> Extracting permission allowlist from $FPE_SRC_TARBALL"
 tar -xf "$TMP_DIR/$FPE_SRC_TARBALL" -C "$TMP_DIR/system/etc/permissions" --strip-components 4 \
   "$FPE_SRC_TARBALL/app/src/main/permissions_org.fdroid.fdroid.privileged.xml"

@@ -23,8 +23,7 @@ read_prop() {
   cat "$@" 2>/dev/null | sed -n "s/^$key=//p" 2>/dev/null | head -n 1
 }
 
-FPE_VC=$(read_prop fpeOtaVersionCode "$MODPATH/module.prop")
-[ -n "$FPE_VC" ] || FPE_VC=$(read_prop fpeVersionCode "$MODPATH/module.prop") # migrate from ota to apk
+FPE_VC=$(read_prop fpeVersionCode "$MODPATH/module.prop")
 FDROID_VC=$(read_prop fdroidVersionCode "$MODPATH/module.prop")
 
 WELCOME=$(
@@ -120,7 +119,7 @@ fi
 if [ "$API" -ge 26 ]; then
   ui_print "==> Downloading $FPE_SRC_URL for API level $API"
   mkdir -p "$MODPATH/system/etc/permissions"
-  curl --compressed -fL -o "$TMPDIR/$FPE_SRC_TARBALL" "$FPE_SRC_URL" || abort "Unable to download"
+  curl -fL -o "$TMPDIR/$FPE_SRC_TARBALL" "$FPE_SRC_URL" || abort "Unable to download"
   find "$TMPDIR/$FPE_SRC_TARBALL"
   ui_print "==> Extracting permission allowlist"
   tar -xf "$TMPDIR/$FPE_SRC_TARBALL" -C "$MODPATH/system/etc/permissions" --strip-components 4 \
