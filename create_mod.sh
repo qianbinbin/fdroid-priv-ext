@@ -57,14 +57,12 @@ FDROID_OLD_VC=$(sed -n 's/^fdroidVersionCode=//p' module.prop)
 FDROID_NEW_VC=$(curl --compressed -fsSL "https://f-droid.org/api/v1/packages/$FDROID_PKG" | jq '.suggestedVersionCode')
 [ -n "$FDROID_NEW_VC" ] || { error "Unable to retrieve versionCode of $FDROID_PKG" && exit 1; }
 if [ "$FDROID_NEW_VC" -ge 2000000 ]; then
-  error "==> F-Droid $FDROID_NEW_VC found"
+  error "==> Exiting for F-Droid $FDROID_NEW_VC"
   error 'F-Droid Privileged Extension (FPE) is not currently supported by 2.0, see'
   error 'https://f-droid.org/en/2026/09/24/f-droid-2.0-a-new-chapter-for-android-freedom.html'
   error 'rework privileged extension and alternate installer support:'
   error 'https://gitlab.com/fdroid/fdroidclient/-/work_items/3376'
-  # exit 1
-  FDROID_NEW_VC=1023052
-  error "==> Proceeding with F-Droid $FDROID_NEW_VC"
+  exit 1
 fi
 MOD_VER=$(sed -n 's/^versionCode=//p' module.prop)
 
@@ -86,7 +84,7 @@ fi
 if [ "$EARLY_EXIT" = true ] && [ "$UPGRADE" != true ]; then
   exit 0
 fi
-if [ "$UPGRADE" = true ] || true; then
+if [ "$UPGRADE" = true ]; then
   MOD_VER=$(date +%Y%m%d)
 fi
 
@@ -106,7 +104,6 @@ if [ "$(echo "$FDROID_INFO" | jq -r '.hashType')" = sha256 ]; then
   FDROID_SHA256=$(echo "$FDROID_INFO" | jq -r '.hash')
 fi
 FDROID_URL="https://f-droid.org/repo/$(echo "$FDROID_INFO" | jq -r '.apkName')"
-FDROID_URL="https://f-droid.org/repo/${FDROID_PKG}_$FDROID_NEW_VC.apk"
 rm -f "$INDEX_JSON"
 
 verify_sha256() {
